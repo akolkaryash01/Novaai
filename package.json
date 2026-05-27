@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">NovaAI</string>
+    <!-- After hosting on GitHub Pages, replace this URL with your live website URL. -->
+    <string name="web_app_url">https://YOUR_GITHUB_USERNAME.github.io/YOUR_REPO_NAME/</string>
+</resources>
