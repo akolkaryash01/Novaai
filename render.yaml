@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: novaai-backend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: ALLOWED_ORIGINS
+        value: https://YOUR_GITHUB_USERNAME.github.io
+      - key: APP_REFERER
+        value: https://YOUR_GITHUB_USERNAME.github.io/YOUR_REPO_NAME/
+      - key: APP_TITLE
+        value: NovaAI
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false

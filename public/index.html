@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>NovaAI – All Providers</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#09090b;--s1:#0f0f12;--s2:#16161a;--s3:#1e1e24;--s4:#26262e;
+  --b:#2c2c36;--b2:#38383f;
+  --t:#f0f0f4;--t2:#9898a8;--t3:#58586a;--t4:#36364a;
+  --shadow:0 8px 32px rgba(0,0,0,.6);
+  --r:12px;--r2:8px;--r3:6px;
+}
+/* provider accent vars — overridden per provider */
+.provider-ollama{--acc:#22d3ee;--acc2:#06b6d4;--usr:#0a2229;--usr-b:#155e75;}
+.provider-groq  {--acc:#f97316;--acc2:#ea580c;--usr:#1f1208;--usr-b:#7c2d12;}
+.provider-openrouter{--acc:#a855f7;--acc2:#9333ea;--usr:#180d24;--usr-b:#581c87;}
+
+body{background:var(--bg);color:var(--t);font-family:'Sora',sans-serif;height:100vh;overflow:hidden}
+.app{display:flex;height:100vh}
+button,input,textarea,select{font-family:'Sora',sans-serif}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:4px}
+
+/* ── SIDEBAR ── */
+.sb{width:272px;min-width:272px;background:var(--s1);border-right:1px solid var(--b);display:flex;flex-direction:column;transition:width .22s ease,min-width .22s ease,opacity .22s ease;overflow:hidden}
+.sb.closed{width:0;min-width:0;opacity:0;border:none}
+
+/* provider switcher */
+.provider-bar{padding:12px 12px 0;display:flex;gap:6px;flex-shrink:0}
+.prov-btn{flex:1;padding:8px 4px;background:var(--s3);border:1.5px solid var(--b);border-radius:var(--r3);cursor:pointer;font-size:11px;font-weight:600;color:var(--t3);transition:.18s;display:flex;flex-direction:column;align-items:center;gap:3px;white-space:nowrap}
+.prov-btn:hover{background:var(--s4);color:var(--t2)}
+.prov-btn.active{background:var(--s3);border-color:var(--acc);color:var(--acc)}
+.prov-icon{font-size:16px}
+
+.sb-top{padding:12px 12px 10px;border-bottom:1px solid var(--b);margin-top:10px;display:flex;align-items:center;gap:8px}
+.logo{font-size:15px;font-weight:700;flex:1;white-space:nowrap;color:var(--t)}
+.logo em{color:var(--acc);font-style:normal}
+.logo-sub{font-size:10px;color:var(--t3);font-weight:400;margin-left:4px}
+.icon-btn{background:none;border:none;color:var(--t2);cursor:pointer;width:28px;height:28px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:15px;transition:.15s;flex-shrink:0}
+.icon-btn:hover{background:var(--s3);color:var(--t)}
+
+.new-btn{margin:10px 12px 8px;padding:9px;background:var(--acc);color:#fff;border:none;border-radius:var(--r2);cursor:pointer;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px;justify-content:center;transition:.15s}
+.provider-groq .new-btn,.provider-openrouter .new-btn{color:#fff}
+.provider-ollama .new-btn{color:#000}
+.new-btn:hover{background:var(--acc2)}
+
+/* api key section */
+.key-section{margin:0 12px 8px;padding:10px;background:var(--s2);border:1px solid var(--b);border-radius:var(--r2)}
+.key-label{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.key-status{width:7px;height:7px;border-radius:50%;background:var(--t4);display:inline-block}
+.key-status.ok{background:#34d399}.key-status.err{background:#f87171}
+.key-inp{width:100%;padding:7px 9px;background:var(--s3);border:1.5px solid var(--b);border-radius:5px;color:var(--t);font-size:12px;outline:none;transition:.15s}
+.key-inp:focus{border-color:var(--acc)}
+.key-inp.valid{border-color:#34d399}
+.key-link{font-size:10.5px;color:var(--acc);text-decoration:underline;display:block;margin-top:5px;cursor:pointer}
+.ollama-status{font-size:11.5px;color:var(--t2);display:flex;align-items:center;gap:6px;padding:4px 0}
+
+/* model selector */
+.model-section{margin:0 12px 8px;flex-shrink:0}
+.model-label{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px;display:flex;align-items:center;justify-content:space-between}
+.model-search{width:100%;padding:7px 9px 7px 26px;background:var(--s2);border:1px solid var(--b);border-radius:5px;color:var(--t);font-size:12px;outline:none;position:relative}
+.model-search:focus{border-color:var(--acc)}
+.model-search-wrap{position:relative;margin-bottom:5px}
+.model-search-ico{position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:12px;pointer-events:none}
+.model-list-wrap{max-height:150px;overflow-y:auto;background:var(--s2);border:1px solid var(--b);border-radius:var(--r3)}
+.model-opt{padding:7px 10px;font-size:12px;color:var(--t2);cursor:pointer;transition:.13s;border-bottom:1px solid var(--b)}
+.model-opt:last-child{border:none}
+.model-opt:hover{background:var(--s3);color:var(--t)}
+.model-opt.sel{background:var(--s3);border-left:2px solid var(--acc);color:var(--t);font-weight:500}
+.model-opt-row{display:flex;align-items:center;gap:5px}
+.model-opt-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.free-tag{font-size:9.5px;color:#34d399;background:rgba(52,211,153,.12);padding:1px 5px;border-radius:8px;flex-shrink:0}
+.model-opt-meta{font-size:10px;color:var(--t3);margin-top:1px}
+.select-box{width:100%;padding:7px 9px;background:var(--s2);border:1px solid var(--b);border-radius:5px;color:var(--t);font-size:12px;outline:none;cursor:pointer}
+.select-box:focus{border-color:var(--acc)}
+
+/* conversations */
+.conv-list{flex:1;overflow-y:auto;padding:4px 8px}
+.group-label{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1px;padding:8px 6px 3px}
+.conv-item{padding:8px 9px;border-radius:5px;cursor:pointer;display:flex;align-items:center;gap:7px;transition:.13s;margin-bottom:2px;position:relative}
+.conv-item:hover{background:var(--s2)}
+.conv-item.act{background:var(--s3)}
+.conv-ico{font-size:12px;flex-shrink:0}
+.conv-t{flex:1;font-size:12.5px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv-item.act .conv-t{color:var(--t);font-weight:500}
+.conv-prov{font-size:9px;color:var(--t3);flex-shrink:0}
+.conv-acts{display:none;gap:2px}
+.conv-item:hover .conv-acts{display:flex}
+.mini-btn{background:none;border:none;color:var(--t3);cursor:pointer;font-size:11px;padding:2px 5px;border-radius:3px;transition:.13s}
+.mini-btn:hover{color:var(--t);background:var(--s4)}
+.mini-btn.del:hover{color:#f87171}
+
+.sb-foot{padding:10px 12px;border-top:1px solid var(--b);display:flex;gap:6px}
+.foot-btn{flex:1;padding:8px;background:none;border:1px solid var(--b);border-radius:var(--r3);color:var(--t3);cursor:pointer;font-size:11.5px;display:flex;align-items:center;gap:6px;justify-content:center;transition:.15s;white-space:nowrap}
+.foot-btn:hover{background:var(--s2);border-color:var(--acc);color:var(--t)}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.topbar{height:52px;background:var(--s1);border-bottom:1px solid var(--b);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0}
+.conv-name-top{font-size:13.5px;font-weight:600;color:var(--t2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{font-size:10px;background:var(--s3);border:1px solid var(--b);padding:3px 8px;border-radius:20px;font-family:'JetBrains Mono',monospace;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+.badge.prov{color:var(--acc);border-color:var(--acc);opacity:.8}
+.tb-btn{padding:5px 10px;background:none;border:1px solid var(--b);border-radius:5px;color:var(--t3);cursor:pointer;font-size:12px;transition:.15s;display:flex;align-items:center;gap:5px}
+.tb-btn:hover{background:var(--s2);color:var(--t)}
+.tb-btn.danger:hover{border-color:#f87171;color:#f87171}
+.export-wrap{position:relative}
+.export-menu{position:absolute;top:calc(100% + 6px);right:0;background:var(--s2);border:1px solid var(--b);border-radius:var(--r2);overflow:hidden;z-index:60;min-width:130px;box-shadow:var(--shadow);display:none}
+.export-menu.open{display:block}
+.export-item{padding:9px 14px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:.13s}
+.export-item:hover{background:var(--s3);color:var(--t)}
+
+/* ── MESSAGES ── */
+.msgs{flex:1;overflow-y:auto;padding:26px 0}
+.msg-row{max-width:760px;margin:0 auto 22px;padding:0 22px;animation:fadeup .2s ease}
+@keyframes fadeup{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+.msg-head{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.av{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.av.user{background:var(--usr);border:1.5px solid var(--usr-b);color:var(--acc)}
+.av.assistant{background:var(--acc);color:#fff}
+.provider-ollama .av.assistant{color:#000}
+.role-lbl{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px}
+.msg-ts{font-size:10px;color:var(--t4);margin-left:auto}
+.bubble{padding:13px 16px;border-radius:var(--r);font-size:14px;line-height:1.72;position:relative}
+.bubble.user{background:var(--usr);border:1.5px solid var(--usr-b);color:var(--t)}
+.bubble.assistant{background:transparent;color:var(--t)}
+.bubble-acts{position:absolute;top:7px;right:7px;display:none;gap:4px}
+.bubble:hover .bubble-acts{display:flex}
+.bact{background:var(--s3);border:1px solid var(--b);color:var(--t3);cursor:pointer;padding:3px 7px;border-radius:4px;font-size:11px;transition:.13s}
+.bact:hover{color:var(--acc);border-color:var(--acc)}
+.att-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.att-img{max-width:260px;max-height:180px;border-radius:var(--r3);object-fit:cover;border:1px solid var(--b);cursor:pointer}
+.att-file{display:flex;align-items:center;gap:7px;background:var(--s3);border:1px solid var(--b);border-radius:var(--r3);padding:7px 11px;font-size:12px;color:var(--t2)}
+
+/* edit message */
+.edit-ta{width:100%;background:var(--s2);border:1.5px solid var(--acc);border-radius:var(--r3);color:var(--t);font-size:14px;padding:10px;resize:vertical;outline:none;line-height:1.7;font-family:'Sora',sans-serif}
+.edit-acts{display:flex;gap:8px;margin-top:8px;justify-content:flex-end}
+.edit-save{padding:6px 14px;background:var(--acc);color:#fff;border:none;border-radius:var(--r3);cursor:pointer;font-size:12.5px;font-weight:600}
+.provider-ollama .edit-save{color:#000}
+.edit-cancel{padding:6px 14px;background:none;border:1px solid var(--b);color:var(--t2);border-radius:var(--r3);cursor:pointer;font-size:12.5px}
+
+/* markdown */
+.md p{margin:5px 0;color:var(--t)}.md h1{font-size:1.3em;font-weight:700;margin:14px 0 6px;color:var(--t)}.md h2{font-size:1.15em;font-weight:700;margin:12px 0 5px;color:var(--t)}.md h3{font-size:1.05em;font-weight:600;margin:10px 0 4px;color:var(--t)}.md h4{font-size:.97em;font-weight:600;margin:8px 0 3px;color:var(--t2)}.md ul{padding-left:20px;margin:5px 0}.md ol{padding-left:20px;margin:5px 0}.md li{margin:3px 0;color:var(--t)}.md strong{font-weight:700;color:var(--t)}.md em{color:var(--t2);font-style:italic}.md del{color:var(--t3);text-decoration:line-through}.md a{color:var(--acc)}.md a:hover{text-decoration:underline}.md blockquote{border-left:3px solid var(--acc);padding:6px 12px;background:var(--s2);border-radius:0 6px 6px 0;margin:8px 0;color:var(--t2)}.md hr{border:none;border-top:1px solid var(--b);margin:14px 0}.md table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}.md th{padding:8px 12px;background:var(--s3);color:var(--t);font-weight:600;text-align:left;border:1px solid var(--b)}.md td{padding:8px 12px;border:1px solid var(--b);color:var(--t2)}.md tr:hover td{background:var(--s2)}.md .code-wrap{background:var(--s2);border:1px solid var(--b);border-radius:var(--r2);margin:10px 0;overflow:hidden}.md .code-header{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:var(--s3);border-bottom:1px solid var(--b)}.md .code-lang{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;font-family:'JetBrains Mono',monospace}.md .copy-code{background:none;border:1px solid var(--b);color:var(--t3);cursor:pointer;font-size:11px;padding:2px 7px;border-radius:4px;transition:.13s}.md .copy-code:hover{color:var(--acc);border-color:var(--acc)}.md pre{padding:14px;overflow-x:auto}.md pre code{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--t);line-height:1.65;white-space:pre}.md .ic{background:var(--s3);border:1px solid var(--b);padding:1px 5px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--acc)}
+
+.dots{display:flex;gap:5px;align-items:center;padding:14px 0}
+.dots span{width:7px;height:7px;background:var(--acc);border-radius:50%;animation:bounce 1.2s ease infinite}
+.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,80%,100%{transform:scale(.7);opacity:.4}40%{transform:scale(1);opacity:1}}
+
+.regen-bar{max-width:760px;margin:-8px auto 18px;padding:0 22px;display:flex;gap:8px}
+.regen-btn{padding:6px 14px;background:none;border:1px solid var(--b);color:var(--t3);border-radius:20px;cursor:pointer;font-size:12px;transition:.15s}
+.regen-btn:hover{border-color:var(--acc);color:var(--acc)}
+
+/* empty state */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;color:var(--t3);padding:20px}
+.empty-ico{font-size:52px;opacity:.7}
+.empty-title{font-size:21px;font-weight:700;color:var(--t2);letter-spacing:-.3px}
+.empty-sub{font-size:13px;text-align:center}
+.prov-cards{display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;justify-content:center}
+.prov-card{padding:12px 16px;background:var(--s2);border:1.5px solid var(--b);border-radius:var(--r2);cursor:pointer;transition:.15s;text-align:center;min-width:110px}
+.prov-card:hover{border-color:var(--acc);background:var(--s3)}
+.prov-card-ico{font-size:22px;margin-bottom:4px}
+.prov-card-name{font-size:12.5px;font-weight:600;color:var(--t2)}
+.prov-card-desc{font-size:10.5px;color:var(--t3);margin-top:2px}
+.chips{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;max-width:560px}
+.chip{padding:7px 14px;background:var(--s2);border:1px solid var(--b);border-radius:20px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:.13s}
+.chip:hover{background:var(--s3);border-color:var(--acc);color:var(--t)}
+
+/* ── INPUT ── */
+.inp-area{padding:12px 18px 14px;background:var(--s1);border-top:1px solid var(--b);flex-shrink:0}
+.att-preview{max-width:760px;margin:0 auto 9px;display:flex;flex-wrap:wrap;gap:7px}
+.att-prev-item{position:relative;background:var(--s2);border:1px solid var(--b);border-radius:5px;overflow:hidden;display:flex;align-items:center}
+.att-prev-img{width:48px;height:48px;object-fit:cover}
+.att-prev-file{padding:7px 11px;font-size:12px;color:var(--t2);display:flex;align-items:center;gap:6px}
+.att-prev-name{max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.att-remove{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.7);color:#fff;border:none;border-radius:50%;width:16px;height:16px;cursor:pointer;font-size:9px;display:flex;align-items:center;justify-content:center}
+.inp-wrap{max-width:760px;margin:0 auto;background:var(--s2);border:1.5px solid var(--b);border-radius:14px;display:flex;align-items:flex-end;gap:7px;padding:9px 11px;transition:.2s}
+.inp-wrap:focus-within{border-color:var(--acc)}
+.inp-tools{display:flex;gap:2px;flex-shrink:0}
+.inp-tool{background:none;border:none;color:var(--t3);cursor:pointer;width:30px;height:30px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:16px;transition:.13s}
+.inp-tool:hover{background:var(--s3);color:var(--acc)}
+.inp-tool.on{color:var(--acc)}
+.inp-tool.listening{color:#f87171;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.inp-wrap textarea{flex:1;background:none;border:none;outline:none;resize:none;color:var(--t);font-family:'Sora',sans-serif;font-size:14px;line-height:1.6;max-height:200px;min-height:24px}
+.inp-wrap textarea::placeholder{color:var(--t3)}
+.send-btn{width:34px;height:34px;background:var(--acc);border:none;border-radius:9px;color:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:.15s;flex-shrink:0;font-weight:700}
+.provider-ollama .send-btn{color:#000}
+.send-btn:hover:not(:disabled){background:var(--acc2)}.send-btn:disabled{background:var(--s4);color:var(--t4);cursor:not-allowed}
+.stop-btn{width:34px;height:34px;background:#f87171;border:none;border-radius:9px;color:#fff;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.stop-btn:hover{opacity:.8}
+.inp-hint{font-size:10.5px;color:var(--t4);text-align:center;margin-top:7px;max-width:760px;margin-left:auto;margin-right:auto}
+
+
+/* ── SMART INTELLIGENCE LAYER ── */
+.smart-section{margin:0 12px 8px;padding:10px;background:linear-gradient(180deg,var(--s2),rgba(255,255,255,.015));border:1px solid var(--b);border-radius:var(--r2);flex-shrink:0}
+.smart-title{font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px;display:flex;align-items:center;justify-content:space-between}
+.smart-pill{font-size:9.5px;color:var(--acc);border:1px solid color-mix(in srgb,var(--acc),transparent 55%);padding:1px 6px;border-radius:999px}
+.smart-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:7px}
+.smart-mini{padding:6px 7px;background:var(--s3);border:1px solid var(--b);border-radius:6px;color:var(--t2);font-size:10.5px;cursor:pointer;transition:.13s;text-align:left}
+.smart-mini:hover,.smart-mini.on{border-color:var(--acc);color:var(--acc);background:rgba(255,255,255,.035)}
+.conv-search{margin:0 12px 8px;position:relative}
+.conv-search input{width:100%;padding:8px 9px 8px 27px;background:var(--s2);border:1px solid var(--b);border-radius:7px;color:var(--t);font-size:12px;outline:none}
+.conv-search input:focus{border-color:var(--acc)}
+.conv-search span{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:12px}
+.bubble.assistant .thinking-note{margin:8px 0;padding:9px 11px;background:var(--s2);border:1px dashed var(--b2);border-radius:8px;color:var(--t2);font-size:12.5px}
+kbd{font-family:'JetBrains Mono',monospace;background:var(--s3);border:1px solid var(--b);border-bottom-color:var(--b2);padding:1px 5px;border-radius:4px;color:var(--t2);font-size:.85em}
+
+/* SETTINGS */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:center;justify-content:center;animation:fadein .15s ease}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.panel{background:var(--s1);border:1px solid var(--b);border-radius:16px;width:500px;max-height:85vh;overflow-y:auto;padding:26px;box-shadow:var(--shadow);animation:slideup .2s ease}
+@keyframes slideup{from{transform:translateY(18px);opacity:0}to{transform:translateY(0);opacity:1}}
+.panel-title{font-size:16px;font-weight:700;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between}
+.panel-close{background:none;border:none;color:var(--t2);cursor:pointer;font-size:20px}
+.sg{margin-bottom:20px}
+.sg-label{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px}
+.sg-desc{font-size:12.5px;color:var(--t3);margin-bottom:8px}
+.sl-row{display:flex;align-items:center;gap:12px}
+.sl-val{font-size:12px;color:var(--acc);font-family:'JetBrains Mono',monospace;min-width:40px;text-align:right}
+input[type=range]{flex:1;-webkit-appearance:none;height:4px;border-radius:2px;background:var(--b);outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--acc);cursor:pointer}
+.sys-ta{width:100%;padding:10px;background:var(--s2);border:1.5px solid var(--b);border-radius:var(--r2);color:var(--t);font-family:'Sora',sans-serif;font-size:13px;resize:vertical;min-height:80px;outline:none;line-height:1.6}
+.sys-ta:focus{border-color:var(--acc)}
+.preset-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.p-chip{padding:5px 11px;background:var(--s2);border:1px solid var(--b);border-radius:20px;font-size:11.5px;color:var(--t2);cursor:pointer;transition:.13s}
+.p-chip:hover,.p-chip.active{border-color:var(--acc);color:var(--acc);background:rgba(168,85,247,.07)}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--b)}
+.toggle-row:last-child{border:none}
+.tgl-label{font-size:13px;color:var(--t)}.tgl-sub{font-size:11.5px;color:var(--t3);margin-top:1px}
+.tog{width:40px;height:22px;background:var(--b2);border-radius:11px;border:none;cursor:pointer;position:relative;transition:.15s;flex-shrink:0}
+.tog.on{background:var(--acc)}.tog::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;background:#fff;border-radius:50%;transition:.15s}
+.tog.on::after{transform:translateX(18px)}
+
+/* IMAGE MODAL */
+.img-modal{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:flex;align-items:center;justify-content:center;cursor:zoom-out}
+.img-modal img{max-width:92vw;max-height:92vh;border-radius:var(--r);object-fit:contain}
+
+/* TOAST */
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:10px 20px;font-size:13px;color:var(--t);z-index:500;box-shadow:var(--shadow);pointer-events:none;display:none}
+.toast.error{border-color:#f87171;color:#f87171}.toast.success{border-color:#34d399;color:#34d399}.toast.warn{border-color:#fbbf24;color:#fbbf24}
+</style>
+</head>
+<body>
+<div class="app provider-openrouter" id="app">
+
+  <!-- ── SIDEBAR ── -->
+  <div class="sb" id="sb">
+
+    <!-- Provider switcher -->
+    <div class="provider-bar">
+      <button class="prov-btn" id="btn-ollama" onclick="switchProvider('ollama')">
+        <span class="prov-icon">🤖</span>Ollama
+      </button>
+      <button class="prov-btn" id="btn-groq" onclick="switchProvider('groq')">
+        <span class="prov-icon">⚡</span>Groq
+      </button>
+      <button class="prov-btn active" id="btn-openrouter" onclick="switchProvider('openrouter')">
+        <span class="prov-icon">🔮</span>Router
+      </button>
+    </div>
+
+    <div class="sb-top">
+      <div class="logo">Nova<em>AI</em><span class="logo-sub" id="logoSub">OpenRouter</span></div>
+      <button class="icon-btn" onclick="toggleSb()">✕</button>
+    </div>
+
+    <button class="new-btn" onclick="newConv()">✦ New conversation</button>
+
+    <!-- Provider-specific config -->
+    <div id="providerConfig"></div>
+
+    <!-- Model selector -->
+    <div class="model-section" id="modelSection"></div>
+
+    <div id="smartSection"></div>
+
+    <div class="conv-search">
+      <span>⌕</span>
+      <input id="convSearch" placeholder="Search chats…" oninput="convFilter=this.value.toLowerCase();renderSidebar()">
+    </div>
+
+    <!-- Conversations -->
+    <div class="conv-list" id="convList"></div>
+
+    <div class="sb-foot">
+      <button class="foot-btn" onclick="openSettings()">⚙ Settings</button>
+      <button class="foot-btn" onclick="toggleTheme()">☀ Theme</button>
+    </div>
+  </div>
+
+  <!-- ── MAIN ── -->
+  <div class="main">
+    <div class="topbar">
+      <button class="icon-btn" onclick="toggleSb()">☰</button>
+      <span class="conv-name-top" id="convNameTop">Select or start a chat</span>
+      <span class="badge prov" id="provBadge">OpenRouter</span>
+      <span class="badge" id="modelBadge" style="color:var(--t2)">No model</span>
+      <span class="badge" id="intelligenceBadge" style="color:var(--acc)">Balanced</span>
+      <div class="export-wrap">
+        <button class="tb-btn" onclick="toggleExport()">⬇ Export</button>
+        <div class="export-menu" id="exportMenu">
+          <div class="export-item" onclick="exportAs('txt')">📄 Plain text</div>
+          <div class="export-item" onclick="exportAs('md')">📝 Markdown</div>
+          <div class="export-item" onclick="exportAs('json')">📦 JSON</div>
+        </div>
+      </div>
+      <button class="tb-btn danger" onclick="clearConv()">🗑 Clear</button>
+    </div>
+
+    <div class="msgs" id="msgs"></div>
+
+    <div class="inp-area">
+      <div class="att-preview" id="attPreview"></div>
+      <div class="inp-wrap">
+        <div class="inp-tools">
+          <button class="inp-tool" title="Attach image" onclick="document.getElementById('imgInput').click()">🖼</button>
+          <button class="inp-tool" title="Attach file" onclick="document.getElementById('fileInput').click()">📎</button>
+          <button class="inp-tool" title="Improve prompt" onclick="improvePrompt()">✨</button>
+          <button class="inp-tool" id="voiceBtn" title="Voice input" onclick="toggleVoice()">🎙</button>
+        </div>
+        <textarea id="inp" rows="1" placeholder="Message the assistant… (Enter to send, Shift+Enter for newline)"></textarea>
+        <button class="stop-btn" id="stopBtn" onclick="stopStream()" style="display:none">■</button>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>↑</button>
+      </div>
+      <div class="inp-hint" id="inpHint">OpenRouter • 100+ models • Free options available • Drag & drop files to attach</div>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="imgInput" accept="image/*" multiple style="display:none">
+<input type="file" id="fileInput" accept=".pdf,.txt,.md,.py,.js,.ts,.jsx,.tsx,.json,.csv,.html,.css" multiple style="display:none">
+
+<!-- Settings overlay -->
+<div class="overlay" id="settingsOverlay" style="display:none" onclick="if(event.target===this)closeSettings()">
+  <div class="panel">
+    <div class="panel-title">⚙️ Settings <button class="panel-close" onclick="closeSettings()">✕</button></div>
+    <div class="sg">
+      <div class="sg-label">System Prompt</div>
+      <div class="preset-chips" id="presetChips"></div>
+      <textarea class="sys-ta" id="sysPrompt"></textarea>
+    </div>
+    <div class="sg">
+      <div class="sg-label">Temperature <span style="color:var(--t3);font-weight:400;text-transform:none;font-size:11px">— 0 = precise, 1 = creative</span></div>
+      <div class="sl-row">
+        <input type="range" min="0" max="1" step="0.05" id="tempSlider" value="0.7" oninput="document.getElementById('tempVal').textContent=parseFloat(this.value).toFixed(2)">
+        <span class="sl-val" id="tempVal">0.70</span>
+      </div>
+    </div>
+    <div class="sg">
+      <div class="sg-label">Max Tokens</div>
+      <div class="sl-row">
+        <input type="range" min="256" max="8192" step="256" id="maxTokSlider" value="2048" oninput="document.getElementById('maxTokVal').textContent=this.value">
+        <span class="sl-val" id="maxTokVal">2048</span>
+      </div>
+    </div>
+    <div class="sg">
+      <div class="sg-label">Misc</div>
+      <div class="toggle-row">
+        <div><div class="tgl-label">✨ Smart prompt enhancer</div><div class="tgl-sub">Adds structure to vague prompts before the API call</div></div>
+        <button class="tog" id="togSmartPrompt" onclick="toggleSetting('smartPrompt')"></button>
+      </div>
+      <div class="toggle-row">
+        <div><div class="tgl-label">🧩 Local conversation memory</div><div class="tgl-sub">Adds compact recent context to the system prompt</div></div>
+        <button class="tog" id="togMemory" onclick="toggleSetting('memory')"></button>
+      </div>
+      <div class="toggle-row">
+        <div><div class="tgl-label">🏷 Auto-title chats</div><div class="tgl-sub">Creates cleaner titles from the first message</div></div>
+        <button class="tog" id="togAutoTitle" onclick="toggleSetting('autoTitle')"></button>
+      </div>
+      <div class="toggle-row">
+        <div><div class="tgl-label">🔊 Auto read aloud</div><div class="tgl-sub">Speak AI responses automatically</div></div>
+        <button class="tog" id="togAutoRead" onclick="toggleSetting('autoRead')"></button>
+      </div>
+      <div class="toggle-row">
+        <div><div class="tgl-label">🗑 Delete all conversations</div><div class="tgl-sub">Clears all chat history permanently</div></div>
+        <button style="padding:5px 12px;background:none;border:1px solid #f87171;border-radius:6px;color:#f87171;cursor:pointer;font-size:12px" onclick="deleteAll()">Delete all</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Image modal -->
+<div class="img-modal" id="imgModal" style="display:none" onclick="document.getElementById('imgModal').style.display='none'">
+  <img id="imgModalSrc">
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════════════
+// DATA & CONSTANTS
+// ════════════════════════════════════════════════════════════════════════════
+const PRESETS = [
+  {label:'Default', value:'You are a helpful, harmless, and honest AI assistant.'},
+  {label:'Code Expert', value:'You are an expert software engineer. Give concise, working code with best practices. Use modern syntax.'},
+  {label:'ELI5', value:'Explain everything like I am 5 years old. Use simple words, analogies and examples.'},
+  {label:'Creative', value:'You are a brilliant creative writer with vivid, compelling prose and a strong narrative voice.'},
+  {label:'Socratic', value:'You are a Socratic tutor. Never give direct answers — guide the user to discover the answer themselves through questions.'},
+  {label:'Critic', value:'You are a brutally honest critic. Identify flaws and improvements without sugarcoating.'},
+];
+
+const SUGGESTIONS = [
+  'Explain quantum computing simply',
+  'Write a Python web scraper',
+  'Debug my JavaScript code',
+  'Compare React vs Vue vs Svelte',
+  'Write a cover letter for a dev job',
+  'Explain how LLMs work',
+];
+
+const INTELLIGENCE_MODES = [
+  {id:'balanced', label:'Balanced', icon:'⚖', system:'Give a clear, useful answer. Prefer concise structure, practical examples, and honest uncertainty.'},
+  {id:'deep', label:'Deep Think', icon:'🧠', system:'Think through the problem carefully before answering. For complex tasks, decompose the work, compare options, mention assumptions, and include verification steps.'},
+  {id:'code', label:'Code Expert', icon:'</>', system:'Act as a senior software engineer. Produce robust, secure, maintainable code. Explain file placement, commands, edge cases, and debugging checks.'},
+  {id:'study', label:'Study Coach', icon:'🎓', system:'Teach like a high-scoring exam mentor. Use simple explanations, memory hooks, examples, practice questions, and common mistakes.'},
+  {id:'business', label:'Business', icon:'📈', system:'Answer like a practical business operator. Include ROI, risks, go-to-market steps, costs, timelines, and realistic constraints when relevant.'},
+  {id:'interview', label:'Interview', icon:'🎯', system:'Prepare the user for interviews. Give direct answers, STAR-style examples, likely follow-ups, and crisp talking points.'},
+  {id:'jarvis', label:'Jarvis', icon:'🛡', system:'Be proactive, organized, and action-oriented like a technical copilot. Provide plans, checklists, automation ideas, and polished outputs.'},
+];
+
+const SLASH_HELP = `/help — show commands
+/deep your task — answer with deeper reasoning mode
+/code your task — answer as a senior coding assistant
+/study your topic — teach for exams
+/business your idea — business/ROI mode
+/interview your question — interview prep mode
+/jarvis your task — proactive technical copilot mode
+/clear — clear current chat`;
+
+const OR_MODELS = [
+  {id:'meta-llama/llama-3.3-70b-instruct:free',   name:'LLaMA 3.3 70B',    meta:'Meta',        free:true},
+  {id:'meta-llama/llama-3.1-8b-instruct:free',    name:'LLaMA 3.1 8B',     meta:'Meta • Fast', free:true},
+  {id:'google/gemma-3-27b-it:free',               name:'Gemma 3 27B',       meta:'Google',      free:true},
+  {id:'deepseek/deepseek-r1:free',                name:'DeepSeek R1',       meta:'Reasoning',   free:true},
+  {id:'deepseek/deepseek-chat:free',              name:'DeepSeek V3',       meta:'DeepSeek',    free:true},
+  {id:'qwen/qwq-32b:free',                        name:'Qwen QwQ 32B',      meta:'Reasoning',   free:true},
+  {id:'mistralai/mistral-7b-instruct:free',       name:'Mistral 7B',        meta:'Mistral',     free:true},
+  {id:'microsoft/phi-3-mini-128k-instruct:free',  name:'Phi-3 Mini',        meta:'Microsoft',   free:true},
+  {id:'anthropic/claude-3.5-sonnet',              name:'Claude 3.5 Sonnet', meta:'Anthropic',   free:false},
+  {id:'openai/gpt-4o',                            name:'GPT-4o',            meta:'OpenAI',      free:false},
+  {id:'openai/gpt-4o-mini',                       name:'GPT-4o Mini',       meta:'OpenAI',      free:false},
+  {id:'google/gemini-pro-1.5',                    name:'Gemini Pro 1.5',    meta:'Google',      free:false},
+  {id:'mistralai/mixtral-8x7b-instruct',          name:'Mixtral 8x7B',      meta:'Mistral',     free:false},
+];
+
+const GROQ_MODELS = [
+  {id:'llama-3.3-70b-versatile',          name:'LLaMA 3.3 70B'},
+  {id:'llama-3.1-8b-instant',             name:'LLaMA 3.1 8B (fast)'},
+  {id:'mixtral-8x7b-32768',               name:'Mixtral 8x7B'},
+  {id:'gemma2-9b-it',                     name:'Gemma 2 9B'},
+  {id:'deepseek-r1-distill-llama-70b',    name:'DeepSeek R1 70B'},
+  {id:'qwen-qwq-32b',                     name:'Qwen QwQ 32B'},
+  {id:'llama3-70b-8192',                  name:'LLaMA3 70B'},
+];
+
+const OLLAMA_DEFAULT_MODELS = ['llama3','llama3.1','llama3.2','mistral','gemma2','codellama','phi3','qwen2','deepseek-r1'];
+
+// ════════════════════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════════════════════
+let provider    = ls('provider') || 'openrouter';
+let convs       = lsj('convs_v3') || [];
+let activeId    = ls('activeId_v3') || null;
+let attachments = [];
+let isStreaming  = false;
+let abortCtrl   = null;
+let isListening  = false;
+let recognition  = null;
+let editingMsg   = null; // {convId, idx, content}
+const DEFAULT_SETTINGS = {sysPrompt: PRESETS[0].value, temp:0.7, maxTok:2048, autoRead:false, mode:'balanced', smartPrompt:true, memory:true, autoTitle:true};
+let settings     = {...DEFAULT_SETTINGS, ...(lsj('settings') || {})};
+let isDark       = ls('theme') !== 'light';
+
+// per-provider state
+let orModel     = ls('or_model')     || OR_MODELS[0].id;
+let groqModel   = ls('groq_model')   || GROQ_MODELS[0].id;
+let ollamaModel = ls('ollama_model') || 'llama3';
+let ollamaHost  = ls('ollama_host')  || 'http://localhost:11434';
+let backendUrl  = ls('backend_url')  || 'http://localhost:8787';
+let orModelSearch = '';
+let convFilter = '';
+let ollamaInstalled = lsj('ollama_installed') || [];
+
+// ── helpers ──────────────────────────────────────────────────────────────────
+function ls(k){return localStorage.getItem(k);}
+function lsj(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch{return null;}}
+function save(){
+  localStorage.setItem('provider',provider);
+  localStorage.setItem('convs_v3',JSON.stringify(convs));
+  localStorage.setItem('activeId_v3',activeId||'');
+  localStorage.setItem('or_model',orModel);
+  localStorage.setItem('groq_model',groqModel);
+  localStorage.setItem('ollama_model',ollamaModel);
+  localStorage.setItem('ollama_host',ollamaHost);
+  localStorage.setItem('backend_url',backendUrl);
+  localStorage.setItem('settings',JSON.stringify(settings));
+  localStorage.setItem('ollama_installed',JSON.stringify(ollamaInstalled));
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function getActive(){return convs.find(c=>c.id===activeId);}
+function getKey(p){return ls(`${p}_key`)||'';}
+function setKey(p,v){localStorage.setItem(`${p}_key`,v);}
+function cleanBackendUrl(){return (backendUrl||'').trim().replace(/\/+$/,'');}
+async function checkBackend(){
+  const dot=document.getElementById('backendDot');
+  const st=document.getElementById('backendStatus');
+  if(!cleanBackendUrl()){showToast('Enter backend URL first','warn');return;}
+  if(st)st.textContent='Checking backend…';
+  try{
+    const r=await fetch(`${cleanBackendUrl()}/api/health`,{signal:AbortSignal.timeout(5000)});
+    const j=await r.json();
+    if(!r.ok)throw new Error(j.error||`HTTP ${r.status}`);
+    if(dot)dot.className='key-status ok';
+    const ready=[]; if(j.providers?.openrouter)ready.push('OpenRouter'); if(j.providers?.groq)ready.push('Groq');
+    if(st)st.textContent=`✓ Backend online${ready.length?' • '+ready.join(', ')+' keys set':' • add keys in backend .env'}`;
+    showToast('Backend connected','success');
+  }catch(e){
+    if(dot)dot.className='key-status err';
+    if(st)st.textContent=`✗ Backend not reachable: ${e.message}`;
+    showToast('Backend not reachable','error');
+  }
+}
+function getCurrentModel(){
+  if(provider==='ollama') return ollamaModel;
+  if(provider==='groq')   return groqModel;
+  return orModel;
+}
+function showToast(msg,type='info'){
+  const t=document.getElementById('toast');t.textContent=msg;
+  t.className=`toast ${type}`;t.style.display='block';
+  clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',2500);
+}
+function toB64(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(f);});}
+function fmtTime(ts){return new Date(ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
+
+// ════════════════════════════════════════════════════════════════════════════
+// PROVIDER SWITCHING
+// ════════════════════════════════════════════════════════════════════════════
+function switchProvider(p){
+  provider=p; save();
+  document.getElementById('app').className=`app provider-${p}`;
+  ['ollama','groq','openrouter'].forEach(x=>{
+    document.getElementById(`btn-${x}`).classList.toggle('active',x===p);
+  });
+  const names={ollama:'Ollama',groq:'Groq',openrouter:'OpenRouter'};
+  document.getElementById('logoSub').textContent=names[p];
+  document.getElementById('provBadge').textContent=names[p];
+  const hints={
+    ollama:'Ollama • 100% local • No API key • No internet needed',
+    groq:'Groq • Ultra-fast inference • Free tier available',
+    openrouter:'OpenRouter • 100+ models • Free models available',
+  };
+  document.getElementById('inpHint').textContent=hints[p]+' • Drag & drop files to attach';
+  renderProviderConfig();
+  renderModelSection();
+  renderSmartSection();
+  renderSidebar();
+  renderMessages();
+  updateTopbar();
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// SIDEBAR CONFIG PANELS
+// ════════════════════════════════════════════════════════════════════════════
+function renderProviderConfig(){
+  const el=document.getElementById('providerConfig');
+  if(provider==='ollama'){
+    const ok=ls('ollama_ok')==='1';
+    el.innerHTML=`
+      <div class="key-section">
+        <div class="key-label"><span class="key-status ${ok?'ok':'err'}" id="ollamaDot"></span>Ollama Host</div>
+        <input class="key-inp" id="ollamaHostInp" value="${esc(ollamaHost)}" placeholder="http://localhost:11434" oninput="ollamaHost=this.value;save();checkOllama()">
+        <a class="key-link" href="https://ollama.com" target="_blank">Download Ollama → ollama.com</a>
+        <div class="ollama-status" id="ollamaStatus">Checking…</div>
+      </div>`;
+    checkOllama();
+  } else {
+    el.innerHTML=`
+      <div class="key-section">
+        <div class="key-label"><span class="key-status" id="backendDot"></span>Secure Backend</div>
+        <input class="key-inp" id="backendUrlInp" value="${esc(backendUrl)}" placeholder="http://localhost:8787" oninput="backendUrl=this.value;save()">
+        <div class="ollama-status" id="backendStatus">API keys stay in backend .env, not in the browser.</div>
+        <button class="foot-btn" style="width:100%;margin-top:8px" onclick="checkBackend()">Check backend</button>
+      </div>`;
+  }
+}
+
+async function checkOllama(){
+  try{
+    const r=await fetch(`${ollamaHost}/api/tags`,{signal:AbortSignal.timeout(3000)});
+    if(r.ok){
+      const d=await r.json();
+      localStorage.setItem('ollama_ok','1');
+      const dot=document.getElementById('ollamaDot');
+      const st=document.getElementById('ollamaStatus');
+      if(dot)dot.className='key-status ok';
+      if(st)st.textContent=`✓ Connected • ${d.models?.length||0} models installed`;
+      if(d.models?.length){
+        const names=d.models.map(m=>m.name);
+        ollamaInstalled=names;
+        if(!names.includes(ollamaModel))ollamaModel=names[0];
+        save();
+        renderModelSection();
+      }
+      return;
+    }
+  }catch(e){}
+  localStorage.setItem('ollama_ok','0');
+  const dot=document.getElementById('ollamaDot');
+  const st=document.getElementById('ollamaStatus');
+  if(dot)dot.className='key-status err';
+  if(st)st.innerHTML='✗ Not running — run: <code style="font-family:monospace;background:var(--s3);padding:1px 4px;border-radius:3px">ollama serve</code>';
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// MODEL SECTION
+// ════════════════════════════════════════════════════════════════════════════
+function renderModelSection(){
+  const el=document.getElementById('modelSection');
+  if(provider==='ollama'){
+    const ollamaList=ollamaInstalled.length?ollamaInstalled:OLLAMA_DEFAULT_MODELS;
+    el.innerHTML=`
+      <div class="sg-label" style="padding:0 4px 5px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.8px">Model <span style="color:var(--t3);font-weight:400">(${ollamaInstalled.length?'installed':'defaults'})</span></div>
+      <select class="select-box" id="ollamaModelSel" onchange="ollamaModel=this.value;save();updateTopbar()">
+        ${ollamaList.map(m=>`<option value="${m}" ${m===ollamaModel?'selected':''}>${m}</option>`).join('')}
+      </select>`;
+  } else if(provider==='groq'){
+    el.innerHTML=`
+      <div class="sg-label" style="padding:0 4px 5px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.8px">Model</div>
+      <select class="select-box" id="groqModelSel" onchange="groqModel=this.value;save();updateTopbar()">
+        ${GROQ_MODELS.map(m=>`<option value="${m.id}" ${m.id===groqModel?'selected':''}>${m.name}</option>`).join('')}
+      </select>`;
+  } else {
+    const filtered=OR_MODELS.filter(m=>!orModelSearch||m.name.toLowerCase().includes(orModelSearch)||m.meta.toLowerCase().includes(orModelSearch));
+    el.innerHTML=`
+      <div class="sg-label" style="padding:0 4px 5px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.8px">Model <span style="color:#34d399;font-weight:400">(${OR_MODELS.filter(m=>m.free).length} free)</span></div>
+      <div class="model-search-wrap">
+        <span class="model-search-ico">⌕</span>
+        <input class="model-search" id="orSearch" placeholder="Search models…" value="${esc(orModelSearch)}" oninput="orModelSearch=this.value.toLowerCase();renderModelSection()">
+      </div>
+      <div class="model-list-wrap">
+        ${filtered.map(m=>`
+          <div class="model-opt ${m.id===orModel?'sel':''}" onclick="orModel='${m.id}';save();updateTopbar();renderModelSection()">
+            <div class="model-opt-row"><span class="model-opt-name">${esc(m.name)}</span>${m.free?'<span class="free-tag">FREE</span>':''}</div>
+            <div class="model-opt-meta">${esc(m.meta)}</div>
+          </div>`).join('')}
+        ${!filtered.length?'<div style="padding:12px;color:var(--t3);font-size:12px;text-align:center">No models found</div>':''}
+      </div>`;
+  }
+  updateTopbar();
+}
+
+
+function currentMode(){
+  return INTELLIGENCE_MODES.find(m=>m.id===settings.mode) || INTELLIGENCE_MODES[0];
+}
+function renderSmartSection(){
+  const el=document.getElementById('smartSection');
+  if(!el)return;
+  const mode=currentMode();
+  el.innerHTML=`
+    <div class="smart-section">
+      <div class="smart-title"><span>Intelligence</span><span class="smart-pill">${mode.icon} ${mode.label}</span></div>
+      <select class="select-box" onchange="settings.mode=this.value;save();renderSmartSection();updateTopbar()">
+        ${INTELLIGENCE_MODES.map(m=>`<option value="${m.id}" ${m.id===settings.mode?'selected':''}>${m.icon} ${m.label}</option>`).join('')}
+      </select>
+      <div class="smart-grid">
+        <button class="smart-mini ${settings.smartPrompt?'on':''}" onclick="toggleSmart('smartPrompt')" title="Auto-enhance vague prompts before sending">✨ Smart prompt</button>
+        <button class="smart-mini ${settings.memory?'on':''}" onclick="toggleSmart('memory')" title="Include a compact local memory from this chat">🧩 Memory</button>
+        <button class="smart-mini ${settings.autoTitle?'on':''}" onclick="toggleSmart('autoTitle')" title="Create better chat titles locally">🏷 Auto-title</button>
+        <button class="smart-mini" onclick="showSlashHelp()" title="Show slash commands">⌘ Commands</button>
+      </div>
+    </div>`;
+  updateTopbar();
+}
+function toggleSmart(key){settings[key]=!settings[key];save();renderSmartSection();}
+function showSlashHelp(){
+  appendLocalAssistant(`### NovaAI commands\n\n${SLASH_HELP.replace(/\n/g,'\n\n')}\n\nTip: use <kbd>Ctrl</kbd> + <kbd>K</kbd> to focus the message box.`);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// CONVERSATIONS
+// ════════════════════════════════════════════════════════════════════════════
+function newConv(){
+  const id=Date.now().toString();
+  convs.unshift({id,title:'New Chat',messages:[],createdAt:Date.now(),provider});
+  activeId=id;attachments=[];editingMsg=null;
+  save();renderSidebar();renderMessages();updateTopbar();
+}
+function switchConv(id){activeId=id;attachments=[];editingMsg=null;save();renderSidebar();renderMessages();updateTopbar();}
+function deleteConv(id){
+  convs=convs.filter(c=>c.id!==id);
+  if(activeId===id)activeId=convs[0]?.id||null;
+  save();renderSidebar();renderMessages();updateTopbar();
+}
+function clearConv(){const c=getActive();if(!c)return;c.messages=[];editingMsg=null;save();renderMessages();}
+function deleteAll(){if(!confirm('Delete ALL conversations?'))return;convs=[];activeId=null;save();renderSidebar();renderMessages();updateTopbar();closeSettings();}
+
+function updateTopbar(){
+  const c=getActive();
+  document.getElementById('convNameTop').textContent=c?.title||'Select or start a chat';
+  const modelName=getCurrentModel().split('/').pop().replace(':free','');
+  document.getElementById('modelBadge').textContent=modelName;
+  const ib=document.getElementById('intelligenceBadge');
+  if(ib){const mode=currentMode();ib.textContent=`${mode.icon} ${mode.label}`;}
+}
+
+function renderSidebar(){
+  const list=document.getElementById('convList');
+  const search=document.getElementById('convSearch');
+  if(search && search.value!==convFilter)search.value=convFilter;
+  const q=(convFilter||'').trim().toLowerCase();
+  const source=q?convs.filter(c=>
+    (c.title||'').toLowerCase().includes(q) ||
+    (c.messages||[]).some(m=>(m.content||'').toLowerCase().includes(q))
+  ):convs;
+  const groups={};
+  source.forEach(c=>{
+    const d=new Date(c.createdAt);const today=new Date();
+    const diff=Math.floor((today-d)/86400000);
+    const label=diff===0?'Today':diff===1?'Yesterday':diff<7?d.toLocaleDateString([],{weekday:'long'}):d.toLocaleDateString([],{month:'short',day:'numeric'});
+    if(!groups[label])groups[label]=[];
+    groups[label].push(c);
+  });
+  if(!convs.length){list.innerHTML='<div style="color:var(--t3);font-size:12px;text-align:center;margin-top:20px">No conversations yet</div>';return;}
+  if(!source.length){list.innerHTML='<div style="color:var(--t3);font-size:12px;text-align:center;margin-top:20px">No matching chats</div>';return;}
+  const provIco={ollama:'🤖',groq:'⚡',openrouter:'🔮'};
+  list.innerHTML=Object.entries(groups).map(([date,items])=>`
+    <div class="group-label">${date}</div>
+    ${items.map(c=>`
+      <div class="conv-item ${c.id===activeId?'act':''}" onclick="switchConv('${c.id}')">
+        <span class="conv-ico">${provIco[c.provider||'openrouter']||'💬'}</span>
+        <span class="conv-t">${esc(c.title||'New Chat')}</span>
+        <span class="conv-prov">${(c.provider||'').slice(0,2).toUpperCase()}</span>
+        <div class="conv-acts">
+          <button class="mini-btn del" onclick="event.stopPropagation();deleteConv('${c.id}')" title="Delete">✕</button>
+        </div>
+      </div>`).join('')}`).join('');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// MARKDOWN
+// ════════════════════════════════════════════════════════════════════════════
+function renderMd(raw){
+  const text=esc(raw);
+  return text
+    .replace(/```(\w*)\n?([\s\S]*?)```/g,(_,lang,code)=>
+      `<div class="code-wrap"><div class="code-header"><span class="code-lang">${lang||'code'}</span><button class="copy-code" onclick="copyCode(this,'${encodeURIComponent(code.trim())}')">Copy</button></div><pre><code>${code}</code></pre></div>`)
+    .replace(/`([^`\n]+)`/g,'<code class="ic">$1</code>')
+    .replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/~~(.+?)~~/g,'<del>$1</del>')
+    .replace(/^#### (.+)$/gm,'<h4>$1</h4>')
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+    .replace(/^# (.+)$/gm,'<h1>$1</h1>')
+    .replace(/^\> (.+)$/gm,'<blockquote>$1</blockquote>')
+    .replace(/^---$/gm,'<hr>')
+    .replace(/^\d+\. (.+)$/gm,'<li style="list-style:decimal">$1</li>')
+    .replace(/^[-*] (.+)$/gm,'<li>$1</li>')
+    .replace(/\[(.+?)\]\((https?:\/\/[^\)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/\n\n/g,'</p><p>');
+}
+function copyCode(btn,enc){navigator.clipboard.writeText(decodeURIComponent(enc));btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy',2000);}
+
+// ════════════════════════════════════════════════════════════════════════════
+// RENDER MESSAGES
+// ════════════════════════════════════════════════════════════════════════════
+function renderMessages(){
+  const c=getActive();const msgs=c?.messages||[];const el=document.getElementById('msgs');
+  if(!msgs.length&&!isStreaming){
+    el.innerHTML=`<div class="empty">
+      <div class="empty-ico">✦</div>
+      <div class="empty-title">NovaAI</div>
+      <div class="empty-sub">Switch providers anytime • All chats saved locally</div>
+      <div class="prov-cards">
+        <div class="prov-card" onclick="switchProvider('ollama')"><div class="prov-card-ico">🤖</div><div class="prov-card-name">Ollama</div><div class="prov-card-desc">100% local • No key</div></div>
+        <div class="prov-card" onclick="switchProvider('groq')"><div class="prov-card-ico">⚡</div><div class="prov-card-name">Groq</div><div class="prov-card-desc">Ultra-fast • Free</div></div>
+        <div class="prov-card" onclick="switchProvider('openrouter')"><div class="prov-card-ico">🔮</div><div class="prov-card-name">OpenRouter</div><div class="prov-card-desc">100+ models • Free</div></div>
+      </div>
+      <div class="chips">${SUGGESTIONS.map(s=>`<button class="chip" onclick="setInput(${JSON.stringify(s)})">${s}</button>`).join('')}</div>
+    </div>`;
+    return;
+  }
+  el.innerHTML=msgs.map((m,i)=>{
+    const isEditing=editingMsg&&editingMsg.convId===activeId&&editingMsg.idx===i;
+    const attHtml=m.attachments?.length?`<div class="att-row">${m.attachments.map(a=>
+      a.type==='image'?`<img src="${a.preview||'data:'+a.mediaType+';base64,'+a.base64}" class="att-img" alt="${esc(a.name)}" onclick="openImgModal(this.src)">`
+      :`<div class="att-file">📎 ${esc(a.name)}</div>`
+    ).join('')}</div>`:'';
+    const content=isEditing
+      ?`<textarea class="edit-ta" id="editTa" rows="3">${esc(m.content)}</textarea><div class="edit-acts"><button class="edit-cancel" onclick="cancelEdit()">Cancel</button><button class="edit-save" onclick="submitEdit()">Send ↑</button></div>`
+      :m.role==='assistant'?`<div class="md"><p>${renderMd(m.content)}</p></div>`:`<span style="white-space:pre-wrap">${esc(m.content)}</span>`;
+    return `<div class="msg-row">
+      <div class="msg-head">
+        <div class="av ${m.role}">${m.role==='user'?'U':'AI'}</div>
+        <span class="role-lbl">${m.role==='user'?'You':'Assistant'}</span>
+        ${m.id?`<span class="msg-ts">${fmtTime(m.id)}</span>`:''}
+      </div>
+      <div class="bubble ${m.role}">
+        ${attHtml}${content}
+        ${!isEditing?`<div class="bubble-acts">
+          <button class="bact" onclick="copyMsg(${i})">⎘ Copy</button>
+          ${m.role==='assistant'?`<button class="bact" onclick="readAloud(${i})">🔊</button>`:''}
+          ${m.role==='user'?`<button class="bact" onclick="startEdit(${i})">✎ Edit</button>`:''}
+        </div>`:''}
+      </div>
+    </div>`;
+  }).join('')
+  +(isStreaming?`<div class="msg-row" id="streamRow"><div class="msg-head"><div class="av assistant">AI</div><span class="role-lbl">Assistant</span></div><div class="bubble assistant" id="streamBubble"><div class="dots"><span></span><span></span><span></span></div></div></div>`
+  :(msgs.length?`<div class="regen-bar"><button class="regen-btn" onclick="regenerate()">↺ Regenerate response</button></div>`:''));
+  el.scrollTop=el.scrollHeight;
+}
+
+function setInput(t){document.getElementById('inp').value=t;document.getElementById('inp').focus();updateSendBtn();}
+function copyMsg(i){const c=getActive();if(!c)return;navigator.clipboard.writeText(c.messages[i].content);showToast('Copied!','success');}
+function readAloud(i){const c=getActive();if(!c)return;const t=c.messages[i].content.replace(/```[\s\S]*?```/g,'code block').replace(/[#*`_~]/g,'');window.speechSynthesis?.cancel();window.speechSynthesis?.speak(new SpeechSynthesisUtterance(t));}
+function openImgModal(src){document.getElementById('imgModalSrc').src=src;document.getElementById('imgModal').style.display='flex';}
+function startEdit(i){const c=getActive();if(!c)return;editingMsg={convId:activeId,idx:i,content:c.messages[i].content};renderMessages();setTimeout(()=>{const ta=document.getElementById('editTa');if(ta){ta.focus();ta.selectionStart=ta.value.length;}},50);}
+function cancelEdit(){editingMsg=null;renderMessages();}
+function submitEdit(){
+  if(!editingMsg)return;
+  const ta=document.getElementById('editTa');
+  const content=ta?ta.value.trim():editingMsg.content;
+  const c=getActive();if(!c)return;
+  const msgs=c.messages.slice(0,editingMsg.idx);
+  c.messages=msgs;editingMsg=null;save();
+  sendMessage(content,msgs);
+}
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// SMART PROMPTING, MEMORY & CONTEXT MANAGEMENT
+// ════════════════════════════════════════════════════════════════════════════
+function estimateTokens(s){return Math.ceil(String(s||'').length/4);}
+function cleanForTitle(s){
+  return String(s||'').replace(/\s+/g,' ').replace(/[^\w\s\-:()\/]/g,'').trim().slice(0,58) || 'New Chat';
+}
+function smartTitleFrom(text){
+  const cleaned=cleanForTitle(text);
+  const words=cleaned.split(' ').filter(Boolean);
+  if(words.length<=7)return cleaned;
+  return words.slice(0,7).join(' ')+'…';
+}
+function enhanceUserPrompt(text){
+  const t=String(text||'').trim();
+  if(!settings.smartPrompt || t.startsWith('/') || t.length>700 || /(^|\n)\s*(context|goal|task|format|constraints)\s*:/i.test(t))return t;
+  const mode=currentMode();
+  return `User request: ${t}
+
+Please respond in ${mode.label} mode.
+Make the answer more useful by:
+1. inferring the practical goal,
+2. stating assumptions only when necessary,
+3. giving a clear final answer first,
+4. adding step-by-step actions or code when relevant,
+5. warning about important limits or mistakes.`;
+}
+function makeConversationMemory(c){
+  if(!settings.memory || !c || !c.messages?.length)return '';
+  const users=c.messages.filter(m=>m.role==='user').slice(0,4).map(m=>m.content).join(' | ');
+  const recent=c.messages.slice(-6).map(m=>`${m.role}: ${String(m.content||'').slice(0,180)}`).join('\n');
+  const summary=[
+    c.title?`Chat title: ${c.title}`:'',
+    users?`Earlier user goals: ${users.slice(0,650)}`:'',
+    recent?`Recent context:\n${recent}`:''
+  ].filter(Boolean).join('\n');
+  return summary.slice(0,1800);
+}
+function buildSystemPrompt(c){
+  const mode=currentMode();
+  const date=new Date().toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'});
+  const parts=[
+    settings.sysPrompt,
+    `Mode: ${mode.label}. ${mode.system}`,
+    `Today is ${date}.`,
+    settings.smartPrompt?'For ambiguous requests, make a reasonable best-effort assumption, proceed, and mention the assumption briefly. Avoid unnecessary follow-up questions.':'',
+    settings.memory?`Local conversation memory:\n${makeConversationMemory(c)}`:'',
+    'Format answers with clean headings, bullets, tables, or code only when they improve clarity. Be direct, practical, and honest.'
+  ];
+  return parts.filter(Boolean).join('\n\n');
+}
+function getApiContent(m){
+  return m.apiContent || m.displayContent || m.content || '';
+}
+function trimMessagesForContext(messages){
+  const budget=70000;
+  let total=0, picked=[];
+  for(let i=messages.length-1;i>=0;i--){
+    const m=messages[i];
+    const att=(m.attachments||[]).map(a=>a.text||a.name||'').join('\n');
+    const size=String(getApiContent(m)).length+att.length;
+    if(picked.length && total+size>budget)break;
+    picked.push(m);total+=size;
+  }
+  return picked.reverse();
+}
+function appendLocalAssistant(content){
+  let c=getActive();
+  if(!c){newConv();c=getActive();}
+  c.messages.push({role:'assistant',content,id:Date.now()});
+  save();renderSidebar();renderMessages();updateTopbar();
+}
+function handleSlashCommand(text){
+  const m=String(text).match(/^\/(\w+)(?:\s+([\s\S]*))?$/);
+  if(!m)return null;
+  const cmd=m[1].toLowerCase(), rest=(m[2]||'').trim();
+  const map={deep:'deep',code:'code',study:'study',business:'business',interview:'interview',jarvis:'jarvis'};
+  if(cmd==='help'){showSlashHelp();return true;}
+  if(cmd==='clear'){clearConv();return true;}
+  if(map[cmd]){
+    settings.mode=map[cmd];save();renderSmartSection();updateTopbar();
+    if(rest)return rest;
+    showToast(`${currentMode().label} mode enabled`,'success');
+    return true;
+  }
+  appendLocalAssistant(`Unknown command: \`/${cmd}\`\n\n${SLASH_HELP}`);
+  return true;
+}
+function improvePrompt(){
+  const inp=document.getElementById('inp');
+  const raw=inp.value.trim();
+  if(!raw){showToast('Type a rough prompt first, then click ✨','warn');return;}
+  inp.value=`Act as an expert ${currentMode().label.toLowerCase()} assistant.
+
+Goal:
+${raw}
+
+Context:
+- Use practical, realistic assumptions.
+- Ask a question only if a missing detail blocks the answer.
+
+Output:
+- Start with the direct answer.
+- Then give step-by-step actions.
+- Include examples, code, or checks where useful.
+- Keep it clear and actionable.`;
+  inp.focus();updateSendBtn();showToast('Prompt improved locally','success');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// SEND MESSAGE
+// ════════════════════════════════════════════════════════════════════════════
+async function sendMessage(overText,overMsgs){
+  const inp=document.getElementById('inp');
+  let text=(overText??inp.value).trim();
+  if(!text&&!attachments.length)return;
+  const slashResult=handleSlashCommand(text);
+  if(slashResult===true)return;
+  if(typeof slashResult==='string')text=slashResult;
+  if(isStreaming)return;
+
+  // backend check for cloud providers
+  if(provider!=='ollama'&&!cleanBackendUrl()){
+    showToast('Enter your backend URL in the sidebar','error');
+    return;
+  }
+
+  let c=getActive();
+  if(!c){
+    const id=Date.now().toString();
+    c={id,title:text.slice(0,45)||'New Chat',messages:[],createdAt:Date.now(),provider};
+    convs.unshift(c);activeId=id;
+  }
+
+  // build user message
+  const userMsg={role:'user',content:text,id:Date.now(),attachments:attachments.length?[...attachments]:undefined,displayContent:text,apiContent:enhanceUserPrompt(text)};
+  const baseMsgs=overMsgs??[...c.messages];
+  c.messages=[...baseMsgs,userMsg];
+  if(baseMsgs.length===0)c.title=settings.autoTitle?smartTitleFrom(text):(text.slice(0,45)||'New Chat');
+  c.provider=provider;
+
+  if(!overText){inp.value='';attachments=[];renderAttPreview();}
+  updateSendBtn();isStreaming=true;
+  save();renderSidebar();renderMessages();updateTopbar();
+  document.getElementById('stopBtn').style.display='flex';
+  document.getElementById('sendBtn').style.display='none';
+
+  abortCtrl=new AbortController();
+  let full='';
+
+  try{
+    if(provider==='ollama')      full=await streamOllama(c,full);
+    else if(provider==='groq')   full=await streamBackend('groq',groqModel,c,full);
+    else                          full=await streamBackend('openrouter',orModel,c,full);
+    c.messages.push({role:'assistant',content:full,id:Date.now()});
+    if(settings.autoRead)readAloud(c.messages.length-1);
+  }catch(e){
+    if(e.name!=='AbortError')c.messages.push({role:'assistant',content:`⚠️ **Error:** ${e.message}`,id:Date.now()});
+  }finally{
+    isStreaming=false;
+    document.getElementById('stopBtn').style.display='none';
+    document.getElementById('sendBtn').style.display='flex';
+    save();renderMessages();
+  }
+}
+
+async function streamOllama(c,full){
+  const apiMsgs=[{role:'system',content:buildSystemPrompt(c)},...trimMessagesForContext(c.messages).map(m=>({role:m.role,content:getApiContent(m)}))];
+  const res=await fetch(`${ollamaHost}/api/chat`,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:ollamaModel,messages:apiMsgs,stream:true,options:{temperature:settings.temp}}),
+    signal:abortCtrl.signal
+  });
+  if(!res.ok)throw new Error(`Ollama error ${res.status}. Is Ollama running? Run: ollama serve`);
+  const reader=res.body.getReader();const dec=new TextDecoder();
+  while(true){
+    const{done,value}=await reader.read();if(done)break;
+    for(const line of dec.decode(value).split('\n').filter(Boolean)){
+      try{const j=JSON.parse(line);if(j.message?.content){full+=j.message.content;updateStream(full);}}catch{}
+    }
+  }
+  return full;
+}
+
+async function streamBackend(cloudProvider,model,c,full){
+  // build messages with image/file support plus smart context trimming
+  const apiMsgs=[{role:'system',content:buildSystemPrompt(c)},...trimMessagesForContext(c.messages).map(m=>{
+    const atts=m.attachments||[];
+    const baseText=getApiContent(m);
+    if(!atts.length)return{role:m.role,content:baseText};
+    const parts=[{type:'text',text:baseText}];
+    atts.forEach(a=>{
+      if(a.type==='image')parts.push({type:'image_url',image_url:{url:`data:${a.mediaType};base64,${a.base64}`}});
+      else if(a.type==='pdf')parts.push({type:'text',text:`[PDF attached: ${a.name}]
+PDF binary is stored locally. If the selected model cannot read PDFs directly, ask the user to paste/extract the relevant text.`});
+      else if(a.text)parts.push({type:'text',text:`[File: ${a.name}]
+\`\`\`
+${a.text}
+\`\`\``});
+    });
+    return{role:m.role,content:parts};
+  })];
+  const res=await fetch(`${cleanBackendUrl()}/api/chat`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({provider:cloudProvider,model,messages:apiMsgs,stream:true,temperature:settings.temp,max_tokens:settings.maxTok}),
+    signal:abortCtrl.signal
+  });
+  if(!res.ok){let e={};try{e=await res.json();}catch{}throw new Error(e.error||`Backend HTTP ${res.status}`);}
+  const reader=res.body.getReader();const dec=new TextDecoder();
+  while(true){
+    const{done,value}=await reader.read();if(done)break;
+    for(const line of dec.decode(value).split('\n').filter(l=>l.startsWith('data: ')&&l!=='data: [DONE]')){
+      try{const j=JSON.parse(line.slice(6));const t=j.choices?.[0]?.delta?.content;if(t){full+=t;updateStream(full);}}catch{}
+    }
+  }
+  return full;
+}
+
+function updateStream(text){
+  const sb=document.getElementById('streamBubble');
+  if(sb)sb.innerHTML=`<div class="md"><p>${renderMd(text)}</p></div>`;
+  document.getElementById('msgs').scrollTop=9999;
+}
+
+function stopStream(){
+  try{abortCtrl?.abort();}catch{}
+  isStreaming=false;
+  const stop=document.getElementById('stopBtn'), send=document.getElementById('sendBtn');
+  if(stop)stop.style.display='none';
+  if(send)send.style.display='flex';
+  showToast('Generation stopped','warn');
+}
+
+function regenerate(){
+  const c=getActive();if(!c||isStreaming)return;
+  const msgs=[...c.messages];
+  if(msgs[msgs.length-1]?.role==='assistant')msgs.pop();
+  const lu=msgs[msgs.length-1];if(!lu||lu.role!=='user')return;
+  msgs.pop();c.messages=msgs;save();
+  sendMessage(lu.displayContent||lu.content,msgs);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// FILES
+// ════════════════════════════════════════════════════════════════════════════
+async function handleFiles(files){
+  for(const file of files){
+    const isImg=file.type.startsWith('image/');
+    const isTxt=file.type.startsWith('text/')||/\.(js|ts|py|json|md|csv|txt|html|css|jsx|tsx)$/i.test(file.name);
+    const isPdf=file.type==='application/pdf';
+    if(isImg){
+      const b64=await toB64(file);
+      attachments.push({type:'image',name:file.name,base64:b64,mediaType:file.type,preview:URL.createObjectURL(file)});
+    }else if(isTxt){
+      const text=await file.text();
+      attachments.push({type:'text',name:file.name,text:text.slice(0,50000)});
+    }else if(isPdf){
+      const b64=await toB64(file);
+      attachments.push({type:'pdf',name:file.name,base64:b64,mediaType:file.type});
+    }else{showToast(`Unsupported: ${file.name}`,'error');}
+  }
+  renderAttPreview();updateSendBtn();
+}
+function renderAttPreview(){
+  document.getElementById('attPreview').innerHTML=attachments.map((a,i)=>`
+    <div class="att-prev-item">
+      ${a.type==='image'?`<img src="${a.preview}" class="att-prev-img" alt="${esc(a.name)}">`:`<div class="att-prev-file">${a.type==='pdf'?'📄':'📎'} <span class="att-prev-name">${esc(a.name)}</span></div>`}
+      <button class="att-remove" onclick="removeAtt(${i})">✕</button>
+    </div>`).join('');
+}
+function removeAtt(i){attachments.splice(i,1);renderAttPreview();updateSendBtn();}
+
+// ════════════════════════════════════════════════════════════════════════════
+// VOICE
+// ════════════════════════════════════════════════════════════════════════════
+function toggleVoice(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){showToast('Speech recognition not supported in this browser','warn');return;}
+  if(isListening){recognition?.stop();return;}
+  recognition=new SR();recognition.lang='en-US';recognition.continuous=false;recognition.interimResults=false;
+  recognition.onresult=e=>{const t=e.results[0][0].transcript;const inp=document.getElementById('inp');inp.value+=(inp.value?' ':'')+t;updateSendBtn();};
+  recognition.onend=()=>{isListening=false;document.getElementById('voiceBtn').classList.remove('listening');};
+  recognition.onerror=()=>{isListening=false;document.getElementById('voiceBtn').classList.remove('listening');};
+  recognition.start();isListening=true;document.getElementById('voiceBtn').classList.add('listening');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// SETTINGS
+// ════════════════════════════════════════════════════════════════════════════
+function openSettings(){
+  const chips=document.getElementById('presetChips');
+  chips.innerHTML=PRESETS.map(p=>`<button class="p-chip ${settings.sysPrompt===p.value?'active':''}" onclick="setPreset(${JSON.stringify(p.value)})">${p.label}</button>`).join('');
+  document.getElementById('sysPrompt').value=settings.sysPrompt;
+  document.getElementById('tempSlider').value=settings.temp;
+  document.getElementById('tempVal').textContent=parseFloat(settings.temp).toFixed(2);
+  document.getElementById('maxTokSlider').value=settings.maxTok;
+  document.getElementById('maxTokVal').textContent=settings.maxTok;
+  document.getElementById('togAutoRead').className='tog'+(settings.autoRead?' on':'');
+  const smart=document.getElementById('togSmartPrompt'); if(smart)smart.className='tog'+(settings.smartPrompt?' on':'');
+  const mem=document.getElementById('togMemory'); if(mem)mem.className='tog'+(settings.memory?' on':'');
+  const autoTitle=document.getElementById('togAutoTitle'); if(autoTitle)autoTitle.className='tog'+(settings.autoTitle?' on':'');
+  document.getElementById('settingsOverlay').style.display='flex';
+}
+function closeSettings(){
+  settings.sysPrompt=document.getElementById('sysPrompt').value;
+  settings.temp=parseFloat(document.getElementById('tempSlider').value);
+  settings.maxTok=parseInt(document.getElementById('maxTokSlider').value);
+  save();
+  document.getElementById('settingsOverlay').style.display='none';
+}
+function setPreset(v){settings.sysPrompt=v;document.getElementById('sysPrompt').value=v;openSettings();}
+function toggleSetting(key){
+  settings[key]=!settings[key];save();
+  const auto=document.getElementById('togAutoRead'); if(auto)auto.className='tog'+(settings.autoRead?' on':'');
+  const smart=document.getElementById('togSmartPrompt'); if(smart)smart.className='tog'+(settings.smartPrompt?' on':'');
+  const mem=document.getElementById('togMemory'); if(mem)mem.className='tog'+(settings.memory?' on':'');
+  const autoTitle=document.getElementById('togAutoTitle'); if(autoTitle)autoTitle.className='tog'+(settings.autoTitle?' on':'');
+  renderSmartSection();
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// EXPORT
+// ════════════════════════════════════════════════════════════════════════════
+function toggleExport(){document.getElementById('exportMenu').classList.toggle('open');}
+function exportAs(type){
+  const c=getActive();if(!c)return;
+  let content='',mime='text/plain';
+  if(type==='txt')content=c.messages.map(m=>`[${m.role.toUpperCase()}]\n${m.content}`).join('\n\n---\n\n');
+  else if(type==='md'){content=`# ${c.title}\n**Provider:** ${c.provider||provider}\n\n`+c.messages.map(m=>`**${m.role==='user'?'You':'Assistant'}:**\n${m.content}`).join('\n\n---\n\n');mime='text/markdown';}
+  else{content=JSON.stringify(c,null,2);mime='application/json';}
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type:mime}));a.download=`${c.title}.${type}`;a.click();
+  document.getElementById('exportMenu').classList.remove('open');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// MISC
+// ════════════════════════════════════════════════════════════════════════════
+function toggleSb(){document.getElementById('sb').classList.toggle('closed');}
+function toggleTheme(){
+  isDark=!isDark;localStorage.setItem('theme',isDark?'dark':'light');
+  document.body.style.filter=isDark?'':'invert(1) hue-rotate(180deg)';
+}
+function updateSendBtn(){
+  const ta=document.getElementById('inp');
+  document.getElementById('sendBtn').disabled=!ta.value.trim()&&!attachments.length;
+  ta.style.height='auto';
+  ta.style.height=Math.min(200,ta.scrollHeight)+'px';
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════════════════
+document.getElementById('inp').addEventListener('input',updateSendBtn);
+document.getElementById('inp').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
+document.getElementById('imgInput').addEventListener('change',e=>{handleFiles(Array.from(e.target.files));e.target.value='';});
+document.getElementById('fileInput').addEventListener('change',e=>{handleFiles(Array.from(e.target.files));e.target.value='';});
+document.getElementById('app').addEventListener('drop',e=>{e.preventDefault();handleFiles(Array.from(e.dataTransfer.files));});
+document.getElementById('app').addEventListener('dragover',e=>e.preventDefault());
+document.addEventListener('click',e=>{if(!e.target.closest('.export-wrap'))document.getElementById('exportMenu').classList.remove('open');});
+document.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();document.getElementById('inp').focus();}
+});
+
+// restore state
+switchProvider(provider);
+if(!convs.length)newConv();else{renderSidebar();renderMessages();updateTopbar();}
+if(!isDark)document.body.style.filter='invert(1) hue-rotate(180deg)';
+// ping ollama if it's the active provider
+if(provider==='ollama')checkOllama();
+setInterval(()=>{if(provider==='ollama')checkOllama();},15000);
+</script>
+</body>
+</html>
