@@ -11,17 +11,12 @@ const rootDir = path.resolve(__dirname, '..');
 const app = express();
 const PORT = process.env.PORT || 8787;
 
+// ── Middleware ────────────────────────────────────────────────────────────────
 app.use(cors());
-else {
-      callback(new Error(`Origin not allowed by CORS: ${origin}`));
-    }
-  },
-  credentials: true,
-}));
-
 app.use(express.json({ limit: '25mb' }));
 app.use(express.static(path.join(rootDir, 'public')));
 
+// ── Provider config ───────────────────────────────────────────────────────────
 const PROVIDERS = {
   openrouter: {
     url: 'https://openrouter.ai/api/v1/chat/completions',
@@ -45,14 +40,18 @@ function providerStatus() {
   };
 }
 
+// ── Health check ──────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
     name: 'NovaAI Backend',
-    providers: providerStatus()
+    version: '1.0.0',
+    providers: providerStatus(),
+    uptime: Math.floor(process.uptime()) + 's'
   });
 });
 
+// ── Chat endpoint ─────────────────────────────────────────────────────────────
 app.post('/api/chat', async (req, res) => {
   try {
     const {
@@ -64,89 +63,132 @@ app.post('/api/chat', async (req, res) => {
       stream = true
     } = req.body || {};
 
+    // Validate provider
     const config = PROVIDERS[provider];
     if (!config) {
-      return res.status(400).json({ error: `Unsupported provider: ${provider}` });
-    }
-    if (!model || typeof model !== 'string') {
-      return res.status(400).json({ error: 'Missing model.' });
-    }
-    if (!Array.isArray(messages) || messages.length === 0) {
-      return res.status(400).json({ error: 'Missing messages.' });
+      return res.status(400).json({ error: `Unsupported provider: ${provider}. Use 'groq' or 'openrouter'.` });
     }
 
+    // Validate model
+    if (!model || typeof model !== 'string') {
+      return res.status(400).json({ error: 'Missing or invalid model field.' });
+    }
+
+    // Validate messages
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: 'messages must be a non-empty array.' });
+    }
+
+    // Check API key exists
     const apiKey = process.env[config.keyName];
     if (!apiKey) {
-      return res.status(500).json({ error: `${config.keyName} is not set on the backend.` });
+      return res.status(500).json({
+        error: `${config.keyName} is not set. Add it to your Render environment variables.`
+      });
     }
 
+    // Call upstream API
     const upstream = await fetch(config.url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${apiKey}`,
         ...config.extraHeaders
       },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature,
-        max_tokens,
-        stream
-      })
+      body: JSON.stringify({ model, messages, temperature, max_tokens, stream })
     });
 
+    // Handle upstream errors
     if (!upstream.ok) {
       const text = await upstream.text();
-      let error = text;
+      let errorMsg = text;
       try {
         const json = JSON.parse(text);
-        error = json.error?.message || json.message || text;
+        errorMsg = json.error?.message || json.message || text;
       } catch {}
-      return res.status(upstream.status).json({ error });
+      console.error(`[${provider}] Upstream error ${upstream.status}:`, errorMsg);
+      return res.status(upstream.status).json({ error: errorMsg });
     }
 
+    // Non-streaming response
     if (!stream) {
       const data = await upstream.json();
       return res.json(data);
     }
 
+    // Streaming response
     res.writeHead(200, {
       'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache, no-transform',
-      Connection: 'keep-alive',
+      'Connection': 'keep-alive',
       'X-Accel-Buffering': 'no'
     });
 
     const reader = upstream.body.getReader();
-    const pump = async () => {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        res.write(value);
-      }
-      res.end();
-    };
 
+    // Cancel stream if client disconnects
     req.on('close', () => {
       try { reader.cancel(); } catch {}
     });
 
-    await pump();
+    // Pump stream to client
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      res.write(value);
+    }
+    res.end();
+
   } catch (err) {
+    console.error('[/api/chat] Error:', err.message);
     if (!res.headersSent) {
-      res.status(500).json({ error: err.message || 'Server error' });
+      res.status(500).json({ error: err.message || 'Internal server error' });
     } else {
-      res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: `\n\n⚠️ Backend error: ${err.message}` } }] })}\n\n`);
-      res.end();
+      // Stream already started — send error as SSE chunk then close
+      try {
+        res.write(`data: ${JSON.stringify({
+          choices: [{ delta: { content: `\n\n⚠️ Server error: ${err.message}` } }]
+        })}\n\n`);
+        res.end();
+      } catch {}
     }
   }
 });
 
+// ── Models list endpoint (optional helper) ────────────────────────────────────
+app.get('/api/models', (_req, res) => {
+  res.json({
+    groq: [
+      { id: 'llama-3.3-70b-versatile',       name: 'LLaMA 3.3 70B' },
+      { id: 'llama-3.1-8b-instant',           name: 'LLaMA 3.1 8B (fast)' },
+      { id: 'mixtral-8x7b-32768',             name: 'Mixtral 8x7B' },
+      { id: 'gemma2-9b-it',                   name: 'Gemma 2 9B' },
+      { id: 'deepseek-r1-distill-llama-70b',  name: 'DeepSeek R1 70B' },
+      { id: 'qwen-qwq-32b',                   name: 'Qwen QwQ 32B' },
+    ],
+    openrouter: [
+      { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'LLaMA 3.3 70B',  free: true },
+      { id: 'meta-llama/llama-3.1-8b-instruct:free',  name: 'LLaMA 3.1 8B',   free: true },
+      { id: 'google/gemma-3-27b-it:free',              name: 'Gemma 3 27B',    free: true },
+      { id: 'deepseek/deepseek-r1:free',               name: 'DeepSeek R1',    free: true },
+      { id: 'deepseek/deepseek-chat:free',             name: 'DeepSeek V3',    free: true },
+      { id: 'qwen/qwq-32b:free',                       name: 'Qwen QwQ 32B',  free: true },
+      { id: 'mistralai/mistral-7b-instruct:free',      name: 'Mistral 7B',    free: true },
+      { id: 'anthropic/claude-3.5-sonnet',             name: 'Claude 3.5',    free: false },
+      { id: 'openai/gpt-4o',                           name: 'GPT-4o',        free: false },
+      { id: 'openai/gpt-4o-mini',                      name: 'GPT-4o Mini',   free: false },
+    ]
+  });
+});
+
+// ── Catch-all — serve frontend ────────────────────────────────────────────────
 app.get('*', (_req, res) => {
   res.sendFile(path.join(rootDir, 'public', 'index.html'));
 });
 
+// ── Start ─────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
-  console.log(`NovaAI backend running on http://localhost:${PORT}`);
+  console.log(`✅ NovaAI backend running on http://localhost:${PORT}`);
+  console.log(`   Groq key:        ${process.env.GROQ_API_KEY       ? '✓ set' : '✗ missing'}`);
+  console.log(`   OpenRouter key:  ${process.env.OPENROUTER_API_KEY ? '✓ set' : '✗ missing'}`);
 });
