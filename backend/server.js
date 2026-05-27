@@ -13,17 +13,19 @@ const PORT = process.env.PORT || 8787;
 
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
   .split(',')
-  .map((origin) => origin.trim())
+  .map(o => o.trim())
   .filter(Boolean);
 
 app.use(cors({
-  origin(origin, callback) {
+  origin: function (origin, callback) {
+    // Allow if: no origin, list is empty, or origin is in list
     if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error(`Origin not allowed by CORS: ${origin}`));
     }
-  }
+  },
+  credentials: true,
 }));
 
 app.use(express.json({ limit: '25mb' }));
