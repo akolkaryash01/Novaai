@@ -107,6 +107,24 @@ app.post('/api/chat', async (req, res) => {
         errorMsg = json.error?.message || json.message || text;
       } catch {}
       console.error(`[${provider}] Upstream error ${upstream.status}:`, errorMsg);
+
+      // Friendly messages for common errors
+      if (upstream.status === 429) {
+        return res.status(429).json({
+          error: `Rate limited by ${provider}. Please wait a moment then try again, or switch to Groq provider which has higher free limits.`
+        });
+      }
+      if (upstream.status === 400 && errorMsg.includes('decommissioned')) {
+        return res.status(400).json({
+          error: `Model "${model}" has been decommissioned by ${provider}. Please select a different model.`
+        });
+      }
+      if (upstream.status === 401) {
+        return res.status(401).json({
+          error: `Invalid API key for ${provider}. Check your ${config.keyName} in Render environment variables.`
+        });
+      }
+
       return res.status(upstream.status).json({ error: errorMsg });
     }
 
@@ -155,28 +173,38 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-// ── Models list endpoint (optional helper) ────────────────────────────────────
+// ── Models list endpoint ──────────────────────────────────────────────────────
+// Updated May 2025 — removed all decommissioned Groq models
 app.get('/api/models', (_req, res) => {
   res.json({
     groq: [
-      { id: 'llama-3.3-70b-versatile',       name: 'LLaMA 3.3 70B' },
-      { id: 'llama-3.1-8b-instant',           name: 'LLaMA 3.1 8B (fast)' },
-      { id: 'mixtral-8x7b-32768',             name: 'Mixtral 8x7B' },
-      { id: 'gemma2-9b-it',                   name: 'Gemma 2 9B' },
-      { id: 'deepseek-r1-distill-llama-70b',  name: 'DeepSeek R1 70B' },
-      { id: 'qwen-qwq-32b',                   name: 'Qwen QwQ 32B' },
+      // ✅ Active models as of May 2025
+      { id: 'llama-3.3-70b-versatile',        name: 'LLaMA 3.3 70B',        default: true },
+      { id: 'llama-3.1-8b-instant',            name: 'LLaMA 3.1 8B (fast)'               },
+      { id: 'llama3-8b-8192',                  name: 'LLaMA3 8B'                          },
+      { id: 'mixtral-8x7b-32768',              name: 'Mixtral 8x7B'                       },
+      { id: 'gemma-7b-it',                     name: 'Gemma 7B'                           },
+      // ❌ REMOVED — decommissioned by Groq:
+      // deepseek-r1-distill-llama-70b
+      // gemma2-9b-it
+      // qwen-qwq-32b
+      // llama3-70b-8192
     ],
     openrouter: [
-      { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'LLaMA 3.3 70B',  free: true },
-      { id: 'meta-llama/llama-3.1-8b-instruct:free',  name: 'LLaMA 3.1 8B',   free: true },
-      { id: 'google/gemma-3-27b-it:free',              name: 'Gemma 3 27B',    free: true },
-      { id: 'deepseek/deepseek-r1:free',               name: 'DeepSeek R1',    free: true },
-      { id: 'deepseek/deepseek-chat:free',             name: 'DeepSeek V3',    free: true },
-      { id: 'qwen/qwq-32b:free',                       name: 'Qwen QwQ 32B',  free: true },
-      { id: 'mistralai/mistral-7b-instruct:free',      name: 'Mistral 7B',    free: true },
-      { id: 'anthropic/claude-3.5-sonnet',             name: 'Claude 3.5',    free: false },
-      { id: 'openai/gpt-4o',                           name: 'GPT-4o',        free: false },
-      { id: 'openai/gpt-4o-mini',                      name: 'GPT-4o Mini',   free: false },
+      // ✅ Free models
+      { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'LLaMA 3.3 70B',   free: true,  default: true },
+      { id: 'meta-llama/llama-3.1-8b-instruct:free',  name: 'LLaMA 3.1 8B',    free: true  },
+      { id: 'google/gemma-3-27b-it:free',              name: 'Gemma 3 27B',     free: true  },
+      { id: 'google/gemma-3-12b-it:free',              name: 'Gemma 3 12B',     free: true  },
+      { id: 'deepseek/deepseek-r1:free',               name: 'DeepSeek R1',     free: true  },
+      { id: 'deepseek/deepseek-chat:free',             name: 'DeepSeek V3',     free: true  },
+      { id: 'mistralai/mistral-7b-instruct:free',      name: 'Mistral 7B',      free: true  },
+      { id: 'microsoft/phi-3-mini-128k-instruct:free', name: 'Phi-3 Mini',      free: true  },
+      // 💰 Paid models
+      { id: 'anthropic/claude-3.5-sonnet',             name: 'Claude 3.5 Sonnet', free: false },
+      { id: 'openai/gpt-4o',                           name: 'GPT-4o',            free: false },
+      { id: 'openai/gpt-4o-mini',                      name: 'GPT-4o Mini',       free: false },
+      { id: 'google/gemini-pro-1.5',                   name: 'Gemini Pro 1.5',    free: false },
     ]
   });
 });
